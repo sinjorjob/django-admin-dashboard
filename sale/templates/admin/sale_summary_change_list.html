@@ -1,0 +1,135 @@
+{% extends "admin/change_list.html" %}
+{% load mathtags %}
+{% load humanize %}
+
+<!-- chart.jsの読み込み -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js"></script>
+
+
+{% block content_title %}
+    <h1> 販売概要 </h1>
+{% endblock %}
+
+{% block result_list %}
+
+<div class="results">
+    <table>
+
+    <thead>
+      <tr>
+        <th>
+          <div class="text">
+            <a href="#">製品名</a>
+          </div>
+        </th>
+        <th>
+          <div class="text">
+            <a href="#">合計数</a>
+          </div>
+        </th>
+        <th>
+          <div class="text">
+            <a href="#">合計金額</a>
+          </div>
+        </th>
+        <th>
+          <div class="text">
+            <a href="#">
+              <strong>総売上高に占める割合(%)</strong>
+            </a>
+          </div>
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+        {% for row in summary %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td> {{ row.product__product_name }} </td>
+          <td> {{ row.total | intcomma}}個 </td>
+         
+          <td> {{ row.total_sales | default:0 | intcomma}}円 </td>
+          <!-- percentof:summary_total.total_sales-->
+          <td><strong> {{ row.total_sales | default:0 | percentof:summary_total.total_sales }} </strong> </td>
+        
+        </tr>
+        {% endfor %}
+      </tbody>
+
+      <tr style="font-weight:bold; border-top:2px solid #4d4e50; background-color:rgb(174, 255, 174)">
+        <td> 合計 </td>
+        <td> {{ summary_total.total| intcomma}}個 </td>
+        <td> {{ summary_total.total_sales | default:0 | intcomma}}円 </td>
+        <td> 100% </td>
+    </tr>
+
+  </table>
+</div>
+
+<!--チャートの描画 -->
+<h2>売上高の推移 </h2>
+
+<canvas id="myChart" width="150" height="45"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.bundle.min.js"></script>
+<script>
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var chart = new Chart(ctx, {
+        // The type of chart we want to create
+        type: 'line',
+    
+        // The data for our dataset
+        data: {
+       
+             labels: [
+             {% for x in summary_over_time %}
+                 '{{x.period | date:"Y/m/d"}}',
+             {% endfor %}],
+            datasets: [
+            {
+                type:'bar',
+                label: '売上高の推移（棒グラフ）',
+                backgroundColor: 'rgb(54,162,235,0.2)',
+                borderColor: 'rgb(54,162,235)',
+                data: [
+                {% for x in summary_over_time %}
+                '{{x.total}}',
+                {% endfor %}
+                ] // data
+
+            },
+            {
+                type:'line',
+                label: '売上の累積値(折れ線グラフ）',
+                backgroundColor: 'rgb(255, 99, 132,0.2)',
+                borderColor: 'rgb(255, 99, 132)',
+                borderWidth: 1.2,
+                //ポイントの背景色
+                pointBackgroundColor: "rgba(255, 99, 132, 0.2)",
+                //ポイントの形(circle[○],rect[□],triangle[△]等がある)
+                pointStyle: 'circle',
+                
+                //線下を塗りつぶすかどうか
+                fill: false,
+                data: [
+                {% for x in cumulative_value_of_prices %}
+                '{{x }}',
+                {% endfor %}
+                ] // data
+            }, 
+            ], // datasets
+        },
+
+        // Configuration options go here
+        options: {
+            scales: {
+                xAxes: [{
+                  ticks: {
+                    maxRotation: 90, // 自動的に回転する角度を固定
+                    minRotation: 90,
+                  }
+                }],
+            }
+        } // options
+    });    
+</script>
+{% endblock %}
